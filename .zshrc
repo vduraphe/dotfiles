@@ -17,6 +17,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
   eval "$(mise activate zsh)"
 fi
 alias config='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+export COCKPIT_DIR="$HOME/cockpit"
 
 # Auto-start Claude in Coder containers
 if [[ -n "${CODER_WORKSPACE_NAME}" ]] && [[ $- == *i* ]]; then
