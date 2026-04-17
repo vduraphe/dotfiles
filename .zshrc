@@ -14,3 +14,8 @@ export MISE_ENV=macos # loads mise.macos.toml
 eval "$(mise activate zsh)"
 export PATH="$HOME/.local/bin:$PATH"
 alias config='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+# Auto-start Claude in Coder containers
+if [[ -n "${CODER_WORKSPACE_NAME}" ]] && [[ $- == *i* ]]; then
+  claude --dangerously-skip-permissions
+fi
