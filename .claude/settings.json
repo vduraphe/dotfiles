@@ -1,0 +1,20 @@
+{
+  "enabledPlugins": {
+    "prodsec@figma-internal": true,
+    "fix-a11y@figma-internal": true,
+    "testing@figma-internal": true,
+    "update-dependency@figma-internal": true,
+    "figma-plugin@figma-internal": true,
+    "figma-security-guidance@figma-internal": true,
+    "coder-tools@figma-internal": true,
+    "feature-flag-cleanup@figma-internal": true,
+    "ci-tools@figma-internal": true,
+    "plugin-tools@figma-internal": true,
+    "figtag-triage@figma-internal": true
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); tokens=$(echo \"$input\" | jq -r '.context_window.context_window_size'); used=$(echo \"$input\" | jq -r '.context_window.used_percentage // empty'); perm=$(echo \"$input\" | jq -r '.permissions.mode // empty'); tokens_display=$(echo $tokens | awk '{printf \"%.0fk\", $1/1000}'); parts=\"$model ($tokens_display)\"; if [ -n \"$used\" ]; then parts=\"$parts | Context: ${used}% used\"; fi; if [ \"$perm\" = 'dangerously-skip-permissions' ]; then parts=\"$parts | DANGEROUS MODE\"; fi; if [ -n \"$CODER_WORKSPACE_NAME\" ]; then parts=\"$parts | Coder: $CODER_WORKSPACE_NAME\"; fi; echo \"$parts\""
+  }
+}
