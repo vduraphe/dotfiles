@@ -68,11 +68,8 @@ For each ready task (no unresolved deps), spawn a worker:
 >
 > ## Rules
 > - Follow the interface spec exactly — do not add methods, fields, or parameters not in the spec
-> - Match existing code patterns in the repo (error handling, naming, structure). Obey the nearest `AGENTS.md` / `CLAUDE.md` for the directory you're editing.
-> - Write tests for the code you write, and run them:
->   - **sinatra (Ruby):** `RACK_ENV=test bundle exec ruby -Isinatra/test:sinatra/lib/test "<test file>"` (RCE/Coder) or `./devbox test "<test file>"` (classic devbox). Lint with `bundle exec rubocop <file>`; typecheck with `bundle exec srb tc` from `sinatra/`.
->   - **web (TS):** `DISPLAY=:0 pnpm test -- <test file>` from `web/` (RCE/Coder) or `./devbox test <test file>` (classic). Typecheck with `bazel build //web:ts_typecheck`; lint with `bazel lint //web:eslint_fast --//bazel/config/eslint:paths=$'<rel path>'`. Never use `tsc`/`eslint` directly.
->   - Other stacks: use the repo's real test command, not a guess.
+> - Match existing code patterns in the repo (error handling, naming, structure). Obey the nearest `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md` for the directory you're editing.
+> - Write tests for the code you write, and run them with the repo's **own** test command — discover it, do not guess. Look (in order) at: the directory's `AGENTS.md`/`CLAUDE.md`/`CONTRIBUTING.md`, the `scripts`/`test` targets in the project manifest (`package.json`, `Makefile`, `justfile`, `Rakefile`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `BUILD`/`BUILD.bazel`), and how neighboring test files are run. Use the same runner, typechecker, and linter the repo already uses; never substitute a global tool for a repo-pinned wrapper.
 > - Do not modify files outside your task scope
 > - **Do not run any git commands** (no commits, no branching, no stashing) — the working-tree diff is handed to /pr afterward
 > - If you're blocked or find the design is ambiguous, report the issue — do not guess
@@ -92,7 +89,7 @@ For tasks with unresolved deps: wait for the blocking workers to complete, then 
 After all workers complete:
 
 - Review the changes made by all workers for consistency
-- Run the relevant tests for the touched areas (see the per-stack commands in the worker rules above)
+- Run the relevant tests for the touched areas, using the repo's own test command (discovered as in the worker rules above)
 - Fix integration issues — usually import paths, type mismatches, or missing glue code
 - Collect `## Discovered Work` sections from all worker outputs
 - File each discovered item as a **new top-level Task** (TaskCreate) — not a child of the orchestration task — so it survives after this run closes. Briefly list them in the report.
