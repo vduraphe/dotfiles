@@ -1,16 +1,21 @@
 {
   "enabledPlugins": {
-    "prodsec@figma-internal": true,
+    "figma-security-guidance@figma-internal": true,
+    "figma-plugin-staging@figma-internal": true,
     "fix-a11y@figma-internal": true,
+    "prodsec@figma-internal": true,
     "testing@figma-internal": true,
+    "coder-tools@figma-internal": true,
     "update-dependency@figma-internal": true,
     "figma-plugin@figma-internal": true,
-    "figma-security-guidance@figma-internal": true,
-    "coder-tools@figma-internal": true,
     "feature-flag-cleanup@figma-internal": true,
-    "ci-tools@figma-internal": true,
     "plugin-tools@figma-internal": true,
-    "figtag-triage@figma-internal": true
+    "ci-tools@figma-internal": true,
+    "figtag-triage@figma-internal": true,
+    "assistant-tooling@figma-internal": true,
+    "ai-trace@figma-internal": true,
+    "fpl-practices@figma-internal": true,
+    "fix-my-devbox@figma-internal": true
   },
   "skipDangerousModePermissionPrompt": true,
   "statusLine": {
