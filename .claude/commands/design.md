@@ -96,7 +96,21 @@ For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY.
 
 ### 6. Output
 
-Produce a markdown document with these sections:
+Produce the markdown document with the sections below, then save, push, and announce:
+
+1. Derive a kebab-case slug from the design subject (3–6 words). Examples: `labmate-fep-dagster-resource`, `sev-flag-suspects-skill`.
+2. If `$COCKPIT_DIR` is unset or empty, stop: "COCKPIT_DIR is not set. Set it before running /design."
+3. `mkdir -p "$COCKPIT_DIR/state/proposals"` and use the `Write` tool to save the full markdown to `$COCKPIT_DIR/state/proposals/<slug>.md`. (This is the git-tracked location for design artifacts.) If a file at that path already exists, pick a more specific slug rather than overwriting.
+4. Commit and push to the cockpit repo:
+   ```bash
+   git -C "$COCKPIT_DIR" add "state/proposals/<slug>.md"
+   git -C "$COCKPIT_DIR" commit -m "proposal: <slug>"
+   git -C "$COCKPIT_DIR" push
+   ```
+   If any git command fails, warn the user but continue.
+5. In chat, print the file path on its own line followed by a 2-sentence summary: what the design does and the next step. Do NOT re-render the full doc in chat — the file is the source of truth.
+
+Document template:
 
 ```markdown
 # Design: [Feature/System Name]
@@ -148,6 +162,7 @@ Before presenting the final document, verify:
 - [ ] Architecture diagram exists and matches the described components
 - [ ] Invariants section lists concrete constraints, not vague goals
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
+- [ ] The full design markdown was written to `$COCKPIT_DIR/state/proposals/<slug>.md` via the `Write` tool, committed, and pushed to the cockpit repo (or git failure was surfaced to the user), and the path was printed in chat
 
 If any check fails, fix it before presenting.
 

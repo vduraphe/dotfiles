@@ -31,3 +31,10 @@ fi
 echo "Installing packages..."
 # Install whichever packages you'd like here
 # It's useful to check if they're already installed first, since this script will run every time the container starts, not just when it's created
+
+# beads (bd) — git-backed issue tracker used by /investigate and /implement.
+# Installs to ~/.local/bin; skip if already present.
+if ! command -v bd >/dev/null 2>&1; then
+  echo "Installing beads (bd)..."
+  curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+fi

@@ -13,20 +13,22 @@ If no design is available, stop and tell the user to run /design first.
 
 | Step | Parallel? | Why |
 |---|---|---|
-| 1. Create tracking task | No — main agent | Track the run before starting |
+| 1. Create Beads task | No — main agent | Track the run before starting |
 | 2. Build the task graph | No — main agent | Read /plan's graph, or derive from the design |
 | 3. Create shared interfaces | No — main agent | Must exist before workers start |
 | 4. Spawn workers | Yes — all workers | Independent implementation tasks |
 | 5. Integrate | No — main agent | Verify changes, run tests |
 | 6. Tighten changes | No — main agent | /simplify + comment audit, re-run tests |
 | 7. Archive consumed design | No — main agent | Move design to finished/ in cockpit |
-| 8. Close tasks and report | No — main agent | Summarizes results with ## Tracking |
+| 8. Close Beads tasks and report | No — main agent | Summarizes results with ## Tracking |
 
 ## Process
 
-### 1. Create tracking task
+### 1. Create Beads task
 
-Create one orchestration task for the whole run with the **TaskCreate** tool: title `Implement: [design name]`, status `in_progress`. Capture its id — call it the **orchestration task**. Every implementation subtask you create below is a separate Task; the orchestration task is the parent you close last.
+**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this work belongs to by matching `cwd` against project `path` fields and matching the design topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation.
+
+Create one orchestration task for the whole run: `bd create --title="Implement: [design name]" --type=task --labels=<resolved-labels>` and store the returned task ID — call it the **orchestration task** (`$orch_id`). Claim it: `bd update $orch_id --claim`. Every implementation subtask you create below is a separate Beads task that depends on `$orch_id`; the orchestration task is the one you close last.
 
 Do not create a duplicate orchestration task. Child implementation tasks are the only other tasks you create.
 
@@ -34,14 +36,14 @@ Do not create a duplicate orchestration task. Child implementation tasks are the
 
 Check whether `/plan` already left a task graph in the conversation or in a plan file the user referenced.
 
-- **If a task graph exists** → read it. Identify which tasks are ready (no unresolved deps) and which are blocked. Mirror each task into a harness Task (TaskCreate, status `pending`) so progress is trackable, then proceed.
+- **If a task graph exists** → read it. Identify which tasks are ready (no unresolved deps) and which are blocked. Mirror each task into a Beads task (`bd create --title="..." --description="..." --type=task --labels=<resolved-labels>`) so progress is trackable, then proceed.
 - **If no task graph exists** → derive one from the design document. Parse and extract:
   - **Components** to build (from the Architecture section)
   - **Interfaces** to implement (from the Interfaces section)
   - **Data schemas** to create/modify (from the Data Schemas section)
   - **Dependencies** between tasks (which tasks block others)
 
-  Create one harness Task per component (TaskCreate) with the interface spec, file scope, and acceptance criteria captured in the task body. Note the dependency order; you'll spawn unblocked tasks first.
+  Create one Beads task per component (`bd create` with the interface spec, file scope, and acceptance criteria captured in the `--description`). Wire dependencies with `bd dep add <task-id> <blocker-id>` so `bd ready` reflects the real order; you'll spawn unblocked tasks first.
 
 ### 3. Create shared interfaces
 
@@ -73,6 +75,7 @@ For each ready task (no unresolved deps), spawn a worker:
 >   - **figma monorepo special case** (when editing inside a checkout that has both `sinatra/` and `web/`, i.e. the `figma/figma` repo): sinatra (Ruby) → `RACK_ENV=test bundle exec ruby -Isinatra/test:sinatra/lib/test "<test file>"` (RCE/Coder) or `./devbox test "<test file>"` (classic devbox), lint `bundle exec rubocop <file>`, typecheck `bundle exec srb tc` from `sinatra/`. web (TS) → `DISPLAY=:0 pnpm test -- <test file>` from `web/` (RCE/Coder) or `./devbox test <test file>` (classic), typecheck `bazel build //web:ts_typecheck`, lint `bazel lint //web:eslint_fast --//bazel/config/eslint:paths=$'<rel path>'`. Never use `tsc`/`eslint` directly.
 > - Do not modify files outside your task scope
 > - **Do not run any git commands** (no commits, no branching, no stashing) — the working-tree diff is handed to /pr afterward
+> - **Do not create or close Beads tasks yourself** — the orchestrator owns tracking
 > - If you're blocked or find the design is ambiguous, report the issue — do not guess
 > - If you discover work outside your task scope (missing APIs, tech debt, schema gaps), report it at the end of your output:
 >   ```
@@ -81,9 +84,9 @@ For each ready task (no unresolved deps), spawn a worker:
 >   ```
 >   Do not create tasks yourself — the orchestrator will file them
 
-Mark each task `in_progress` (TaskUpdate) as you spawn its worker. Spawn ALL ready workers in ONE assistant message using the `Agent` tool. Each is a synchronous, blocking call — multiple `Agent` tool uses in a single message run concurrently and the harness blocks the turn until every result returns. **Do not set `run_in_background: true`** for workers — you want their results in hand before integrating.
+Claim each task as you spawn its worker: `bd update <task-id> --claim`. Spawn ALL ready workers in ONE assistant message using the `Agent` tool. Each is a synchronous, blocking call — multiple `Agent` tool uses in a single message run concurrently and the harness blocks the turn until every result returns. **Do not set `run_in_background: true`** for workers — you want their results in hand before integrating.
 
-For tasks with unresolved deps: wait for the blocking workers to complete, then spawn the next wave.
+For tasks with unresolved deps: wait for the blocking workers to complete, then spawn the next wave (use `bd ready` to see which tasks have become unblocked).
 
 ### 5. Integrate
 
@@ -93,7 +96,7 @@ After all workers complete:
 - Run the relevant tests for the touched areas, using the repo's own test command (discovered as in the worker rules above)
 - Fix integration issues — usually import paths, type mismatches, or missing glue code
 - Collect `## Discovered Work` sections from all worker outputs
-- File each discovered item as a **new top-level Task** (TaskCreate) — not a child of the orchestration task — so it survives after this run closes. Briefly list them in the report.
+- File each discovered item as a **new top-level Beads task** (`bd create`) that depends on the orchestration task (`bd dep add <new-id> $orch_id`) — not a child of it — so it survives after this run closes and surfaces in `bd ready` once the orchestration task is done. Briefly list them in the report.
 - Do not run any git commands
 
 If any check fails, fix it before reporting.
@@ -105,7 +108,7 @@ After integration is green, tighten the code the workers produced before it leav
 1. **Simplify the code.** Invoke the `/simplify` skill over the changes. It applies reuse, simplification, efficiency, and altitude cleanups in place — collapsing duplication, swapping reinvented helpers for existing ones, and removing complexity the parallel workers couldn't see across task boundaries.
 
 2. **Audit comments for load-bearing value.** Review every comment the implementation added or changed and cut the ones that don't earn their place:
-   - **Always strip personal workflow artifacts** (no judgment call — these must never ship in code): task IDs, links or paths to design docs (`$COCKPIT_DIR/state/designs/…` or any cockpit reference), "see the plan / per the design" pointers, and any other internal tracking reference. They're meaningless to a repo reader and leak private context.
+   - **Always strip personal workflow artifacts** (no judgment call — these must never ship in code): Beads task IDs, links or paths to design docs (`$COCKPIT_DIR/state/designs/…` or any cockpit reference), "see the plan / per the design" pointers, and any other internal tracking reference. They're meaningless to a repo reader and leak private context.
    - **Remove** comments that explain *what* well-named code already says, that reference the task/PR ("added for X"), or that are tombstones (`# renamed from…`, stale TODOs).
    - **Collapse** multi-paragraph docstrings or blocks to the one line that carries the load.
    - **Keep** only the non-obvious *why*: hidden constraints, invariants, ordering requirements, workaround-for-bug notes. When in doubt, keep — deleting load-bearing context is worse than leaving a marginal comment.
@@ -128,9 +131,9 @@ git -C "$COCKPIT_DIR" push
 
 (Committing the cockpit scratchpad is fine — cockpit is your own repo. This is the one place the skill touches git, and it's never the code repo.) If the design wasn't in the cockpit, skip this step.
 
-### 8. Close tasks and report
+### 8. Close Beads tasks and report
 
-Mark each completed implementation task `completed` (TaskUpdate), then mark the orchestration task `completed`.
+Close each completed implementation task (`bd close <task-id>`), then close the orchestration task (`bd close $orch_id`).
 
 Write the Implementation Report:
 
@@ -148,10 +151,10 @@ Write the Implementation Report:
 
 ## Deviations & Discovered Work
 [differences from design, with rationale]
-[titles of any new tasks filed for discovered work, or "None"]
+[titles/ids of any new Beads tasks filed for discovered work, or "None"]
 
 ## Tracking
-- Orchestration task: <title/id> — completed
+- Orchestration: <$orch_id from Step 1> — closed
 ```
 
 Save the report with the Write tool to `$COCKPIT_DIR/state/implementations/implement-report-<design-slug>.md` (create the dir if needed), and tell the user the path. You MUST write the file to disk — do not just output the report as conversation text.
@@ -168,4 +171,5 @@ Then tell the user the working-tree diff is ready and suggest running **/pr** to
 - **Match existing patterns** — look at neighboring code and the directory's `AGENTS.md`/`CLAUDE.md` before writing new code
 - **Tests are required** — every worker writes and runs tests for its code, using the repo's real test command
 - **Report deviations** — if implementation must differ from design, explain why
+- **Beads tracking is owned by the orchestrator** — workers never create or close tasks
 - **## Tracking is mandatory** — the report must list the orchestration task and its status
