@@ -1,4 +1,8 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); tokens=$(echo \"$input\" | jq -r '.context_window.context_window_size'); used=$(echo \"$input\" | jq -r '.context_window.used_percentage // empty'); perm=$(echo \"$input\" | jq -r '.permissions.mode // empty'); tokens_display=$(echo $tokens | awk '{printf \"%.0fk\", $1/1000}'); parts=\"$model ($tokens_display)\"; if [ -n \"$used\" ]; then parts=\"$parts | Context: ${used}% used\"; fi; if [ \"$perm\" = 'dangerously-skip-permissions' ]; then parts=\"$parts | DANGEROUS MODE\"; fi; if [ -n \"$CODER_WORKSPACE_NAME\" ]; then parts=\"$parts | Coder: $CODER_WORKSPACE_NAME\"; fi; echo \"$parts\""
+  },
   "enabledPlugins": {
     "figma-security-guidance@figma-internal": true,
     "figma-plugin-staging@figma-internal": true,
@@ -15,11 +19,9 @@
     "assistant-tooling@figma-internal": true,
     "ai-trace@figma-internal": true,
     "fpl-practices@figma-internal": true,
-    "fix-my-devbox@figma-internal": true
+    "fix-my-devbox@figma-internal": true,
+    "storage-norms@figma-internal": true,
+    "devex-ci@figma-internal": true
   },
-  "skipDangerousModePermissionPrompt": true,
-  "statusLine": {
-    "type": "command",
-    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); tokens=$(echo \"$input\" | jq -r '.context_window.context_window_size'); used=$(echo \"$input\" | jq -r '.context_window.used_percentage // empty'); perm=$(echo \"$input\" | jq -r '.permissions.mode // empty'); tokens_display=$(echo $tokens | awk '{printf \"%.0fk\", $1/1000}'); parts=\"$model ($tokens_display)\"; if [ -n \"$used\" ]; then parts=\"$parts | Context: ${used}% used\"; fi; if [ \"$perm\" = 'dangerously-skip-permissions' ]; then parts=\"$parts | DANGEROUS MODE\"; fi; if [ -n \"$CODER_WORKSPACE_NAME\" ]; then parts=\"$parts | Coder: $CODER_WORKSPACE_NAME\"; fi; echo \"$parts\""
-  }
+  "skipDangerousModePermissionPrompt": true
 }
