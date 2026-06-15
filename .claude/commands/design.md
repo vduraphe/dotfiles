@@ -16,24 +16,32 @@ The more the user front-loads, the less exploration you do and the faster you co
 
 | Step | Parallel? | Why |
 |---|---|---|
-| 1. Understand brief | No — main agent | Needs user input |
-| 2. Exploration team | Yes — 3 agents | Independent research |
-| 3. Synthesize | No — main agent | Combines findings into design |
-| 4. Spec interfaces | No — main agent | Depends on synthesis |
-| 5. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
-| 6. Output | No — main agent | Formats final document |
-| 7. Self-validation | No — main agent | Checks output completeness |
+| 1. Create Beads task | No — main agent | Track work before starting |
+| 2. Understand brief | No — main agent | Needs user input |
+| 3. Exploration team | Yes — 3 agents | Independent research |
+| 4. Synthesize | No — main agent | Combines findings into design |
+| 5. Spec interfaces | No — main agent | Depends on synthesis |
+| 6. Simplification review | No — 1 agent (clean-room) | Isolated from exploration context |
+| 7. Output | No — main agent | Formats final document + closes Beads |
+| 8. Self-validation | No — main agent | Checks output completeness |
 
 ## Process
 
-### 1. Understand the brief
+### 1. Create Beads task
+
+**Project labeling**: Read `$COCKPIT_DIR/project-tree.json` (skip if missing or `COCKPIT_DIR` unset). Review the project list to understand the landscape of active projects and their labels. Determine which project this work belongs to by matching `cwd` against project `path` fields and matching the design topic against project names. If exactly one project matches, use its `labels` array. If ambiguous or no match, ask the user which project this is for. Store the resolved labels for all `bd create` calls in this skill invocation.
+
+Run `bd create --title="Design: [topic]" --type=task --labels=<resolved-labels>` and store the returned task ID.
+Claim it: `bd update <id> --claim`.
+
+### 2. Understand the brief
 
 Parse the user's request for:
 - **Goal**: What problem are we solving?
 - **Constraints**: What must not change? What's out of scope?
 - **Sketch**: Did the user provide an approach? API shapes? Key decisions?
 
-### 2. Spawn exploration team (parallel)
+### 3. Spawn exploration team (parallel)
 
 Spawn ALL agents in ONE message:
 
@@ -46,11 +54,11 @@ Spawn ALL agents in ONE message:
 **Devil's Advocate** (Agent, model=opus):
 > Challenge the proposed approach. Consider: What could go wrong? What are the failure modes? Are there simpler alternatives? What's the maintenance burden? Where will this design break in 6 months? Return: ranked list of concerns with severity and suggested mitigations.
 
-### 3. Synthesize into design document
+### 4. Synthesize into design document
 
 Combine explorer findings with the user's brief. Make decisions — don't present options. For each decision, briefly note why alternatives were rejected.
 
-### 4. Spec all interfaces explicitly
+### 5. Spec all interfaces explicitly
 
 This is the most important step. For every boundary in the design:
 
@@ -78,7 +86,7 @@ table: name
 
 Keep interfaces minimal. If a method isn't needed by the design, don't add it.
 
-### 5. Clean-room simplification review
+### 6. Clean-room simplification review
 
 After the design is written, spawn a simplification reviewer with ONLY the design document — no access to the exploration context:
 
@@ -94,13 +102,13 @@ After the design is written, spawn a simplification reviewer with ONLY the desig
 
 For each simplification recommendation: ACCEPT, REJECT (with reason), or MODIFY. Apply accepted simplifications to the design.
 
-### 6. Output
+### 7. Output
 
 Produce the markdown document with the sections below, then save, push, and announce:
 
 1. Derive a kebab-case slug from the design subject (3–6 words). Examples: `labmate-fep-dagster-resource`, `sev-flag-suspects-skill`.
 2. If `$COCKPIT_DIR` is unset or empty, stop: "COCKPIT_DIR is not set. Set it before running /design."
-3. `mkdir -p "$COCKPIT_DIR/state/proposals"` and use the `Write` tool to save the full markdown to `$COCKPIT_DIR/state/proposals/<slug>.md`. (This is the git-tracked location for design artifacts.) If a file at that path already exists, pick a more specific slug rather than overwriting.
+3. `mkdir -p "$COCKPIT_DIR/state/proposals"` and use the `Write` tool to save the full markdown to `$COCKPIT_DIR/state/proposals/<slug>.md`. (This is the git-tracked location for design artifacts.) If a file at that path already exists, pick a more specific slug rather than overwriting. Fill the `## Tracking` section with the Beads task ID from Step 1.
 4. Commit and push to the cockpit repo:
    ```bash
    git -C "$COCKPIT_DIR" add "state/proposals/<slug>.md"
@@ -108,7 +116,8 @@ Produce the markdown document with the sections below, then save, push, and anno
    git -C "$COCKPIT_DIR" push
    ```
    If any git command fails, warn the user but continue.
-5. In chat, print the file path on its own line followed by a 2-sentence summary: what the design does and the next step. Do NOT re-render the full doc in chat — the file is the source of truth.
+5. Close the Beads task: `bd close <task-id>`.
+6. In chat, print the file path on its own line followed by a 2-sentence summary: what the design does and the next step. Do NOT re-render the full doc in chat — the file is the source of truth.
 
 Document template:
 
@@ -150,9 +159,12 @@ Anything that needs human input before implementation.
 
 ## Next Step
 Run /plan to create the task graph for implementation.
+
+## Tracking
+- Beads: <task-id> — closed
 ```
 
-### 7. Self-validation
+### 8. Self-validation
 
 Before presenting the final document, verify:
 
@@ -163,6 +175,7 @@ Before presenting the final document, verify:
 - [ ] Invariants section lists concrete constraints, not vague goals
 - [ ] Open Questions are genuine blockers, not deferred decisions you could have made
 - [ ] The full design markdown was written to `$COCKPIT_DIR/state/proposals/<slug>.md` via the `Write` tool, committed, and pushed to the cockpit repo (or git failure was surfaced to the user), and the path was printed in chat
+- [ ] A Beads task was created and claimed before exploration, recorded in `## Tracking`, and closed after the document was saved
 
 If any check fails, fix it before presenting.
 
@@ -174,3 +187,4 @@ If any check fails, fix it before presenting.
 - **Mermaid diagrams for architecture** — text descriptions alone are not sufficient
 - **Reference existing code** — show where the design connects to what already exists (file:line)
 - **The simplification review is not optional** — always run it, always apply accepted recommendations
+- **Beads tracks the work** — create and claim the task before exploring, close it after the document is saved, and record the ID in `## Tracking`

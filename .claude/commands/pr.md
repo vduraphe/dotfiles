@@ -182,6 +182,14 @@ else:
 
 Show the user the PR URL. If the PR was created from main, note that it was submitted as a draft.
 
+**Close the tracking task (if any):** `/pr` is the terminal step of `design → plan → implement → pr`, so the Beads task was created upstream — do not create a new one here. If a `bd` task id is associated with this work — passed in `$ARGUMENTS`, present in conversation context, or referenced in a design doc found in Step 2 (`## Tracking`) — close it now, only after the PR was created successfully:
+
+```bash
+bd close <id>
+```
+
+If `bd` is unavailable or no task is clearly associated, skip this silently. Note the closed id in your report when you do close one.
+
 ## Rules
 
 - **Title under 70 characters** — use the description for details
@@ -192,3 +200,4 @@ Show the user the PR URL. If the PR was created from main, note that it was subm
 - **Lead with the why** — reviewers care about motivation before mechanics
 - **Link the design doc** — if one exists, reference it in the Approach section
 - **Keep it concise** — a PR description is a summary, not documentation
+- **Never create a Beads task here** — `/pr` is terminal; it only closes an upstream task that's clearly associated, and only after the PR succeeds

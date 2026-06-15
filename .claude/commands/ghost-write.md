@@ -36,18 +36,23 @@ The user provides text to rewrite via ARGUMENTS. If no arguments are provided, o
 
 | Step | Parallel? | Why |
 |---|---|---|
-| 1. Rewrite text | No — main agent | Applies style to input text |
-| 2. Review panel (AI Slop Detector, Tone Reviewer, Punctuation Checker) | Yes — 3 agents | Independent, non-overlapping review scopes |
-| 3. Merge and apply fixes | No — main agent | Single revision pass from filtered findings |
-| 4. Output final text | No — main agent | Copy-paste-ready result |
+| 1. Create Beads task | No — main agent | Track work before starting (silent, best-effort) |
+| 2. Rewrite text | No — main agent | Applies style to input text |
+| 3. Review panel (AI Slop Detector, Tone Reviewer, Punctuation Checker) | Yes — 3 agents | Independent, non-overlapping review scopes |
+| 4. Merge and apply fixes | No — main agent | Single revision pass from filtered findings |
+| 5. Output final text | No — main agent | Copy-paste-ready result + closes Beads |
 
 ## Process
 
-### 1. Rewrite text
+### 1. Create Beads task
+
+Tracking here is **silent and best-effort** — it must never touch the final output. If `bd` is unavailable or `$COCKPIT_DIR` is unset, skip Beads entirely (ghost-write often runs outside a project). Otherwise, optionally read `$COCKPIT_DIR/project-tree.json` and resolve labels by matching `cwd` against project `path` fields (skip labels if there's no clear match — never block on it). Run `bd create --title="Ghost-write: [3-5 word summary]" --type=task --labels=<resolved-labels>` and claim it (`bd update <id> --claim`). Do not announce any of this.
+
+### 2. Rewrite text
 
 Rewrite the input text to match Vaidehi's voice. Apply all style rules above. Hold the rewritten text internally for review.
 
-### 2. Review panel (parallel)
+### 3. Review panel (parallel)
 
 Spawn ALL 3 reviewers in ONE message. Each receives the rewritten text and the style guide above.
 
@@ -90,14 +95,14 @@ Spawn ALL 3 reviewers in ONE message. Each receives the rewritten text and the s
 > For each issue: quote the exact text, name the punctuation problem, suggest a fix.
 > If no issues found, return "No issues found."
 
-### 3. Merge and apply fixes
+### 4. Merge and apply fixes
 
 1. Collect all findings from the 3 reviewers
 2. Apply all fixes in one pass to produce the final text
 
-### 4. Output final text
+### 5. Output final text
 
-Output the final rewritten text only. No preamble, no summary, no explanation unless the user asks.
+Output the final rewritten text only. No preamble, no summary, no explanation unless the user asks. If a Beads task was created in Step 1, close it now (`bd close <task-id>`) — silently, after the text is produced; never print the task ID or any tracking note.
 
 ## Rules
 
@@ -108,3 +113,4 @@ Output the final rewritten text only. No preamble, no summary, no explanation un
 - **No emdashes in final output** — emdashes and double dashes must never appear in the result
 - **Specificity is non-negotiable** — if the input has vague claims, flag them; don't invent specifics
 - **All agents use model=opus**
+- **Beads tracking is silent and best-effort** — when `bd`/`$COCKPIT_DIR` are available, bracket the work with a create/close, but it must never appear in the final output
