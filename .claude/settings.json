@@ -21,7 +21,11 @@
     "fpl-practices@figma-internal": true,
     "fix-my-devbox@figma-internal": true,
     "storage-norms@figma-internal": true,
-    "devex-ci@figma-internal": true
+    "devex-ci@figma-internal": true,
+    "figma-a11y@figma-internal": true,
+    "ml-tools@figma-internal": true,
+    "semantic-layer-guardrails@figma-internal": true,
+    "investigate-sentry@figma-internal": true
   },
   "skipDangerousModePermissionPrompt": true
 }
