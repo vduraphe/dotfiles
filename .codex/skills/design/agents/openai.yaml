@@ -1,0 +1,4 @@
+interface:
+  display_name: "System Design"
+  short_description: "Produce implementation-ready architecture proposals"
+  default_prompt: "Use $design to create an implementation-ready architecture proposal for this feature."
