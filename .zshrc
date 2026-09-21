@@ -20,6 +20,6 @@ alias config='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 export COCKPIT_DIR="$HOME/cockpit"
 
 # Auto-start Claude in Coder containers
-if [[ -n "${CODER_WORKSPACE_NAME}" ]] && [[ $- == *i* ]]; then
+if [[ -n "${CODER_WORKSPACE_NAME}" ]] && [[ $- == *i* ]] && [[ -t 0 ]] && [[ -t 1 ]]; then
   claude --dangerously-skip-permissions
 fi
